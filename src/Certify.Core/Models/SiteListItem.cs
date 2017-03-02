@@ -1,109 +1,65 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace Certify.Models
-{
-    public enum ManagedSiteType
-    {
-        LocalIIS = 1
-    }
+namespace Certify.Models {
+ public enum ManagedSiteType {
+  LocalIIS = 1
+ }
 
-    public enum PlannedActionType
-    {
-        NewCertificate,
-        ReplaceCertificate,
-        KeepCertificate,
-        Ignore
-    }
+ public enum PlannedActionType {
+  NewCertificate = 0,
+  ReplaceCertificate = 1,
+  KeepCertificate = 2,
+  Ignore = 3
+ }
 
-    public class ManagedSiteBinding
-    {
-        public string Hostname { get; set; }
-        public int Port { get; set; }
+ public class ManagedSiteBinding {
+  public System.String Hostname { get; set; }
 
-        /// <summary>
-        /// IP is either * (all unassigned) or a specific IP
-        /// </summary>
-        public string IP { get; set; }
+  public System.Int32 Port { get; set; }
 
-        public bool UseSNI { get; set; }
-        public string CertName { get; set; }
-        public PlannedActionType PlannedAction { get; set; }
+  /// <summary>
+  /// IP is either * (all unassigned) or a specific IP
+  /// </summary>
+  public System.String IP { get; set; }
 
-        /// <summary>
-        /// The primary domain is the main domain listed on the certificate
-        /// </summary>
-        public bool IsPrimaryCertificateDomain { get; set; }
+  public System.Boolean UseSNI { get; set; }
 
-        /// <summary>
-        /// For SAN certificates, indicate if this name is an alternative name to be associated with a primary domain certificate
-        /// </summary>
-        public bool IsSubjectAlternativeName { get; set; }
-    }
+  public System.String CertName { get; set; }
 
-    public enum LogItemType
-    {
-        CertificateRequestStarted = 50,
-        CertificateRequestSuccessful = 100,
-        CertficateRequestFailed = 101,
-        CertficateRequestAttentionRequired = 110
-    }
+  public PlannedActionType PlannedAction { get; set; }
+ }
 
-    public class ManagedSiteLogItem
-    {
-        public DateTime EventDate { get; set; }
-        public string Message { get; set; }
-        public LogItemType LogItemType { get; set; }
-    }
+ public class ManagedSite {
+  public System.String SiteId { get; set; }
 
-    public class ManagedSite
-    {
-        public string SiteId { get; set; }
-        public string SiteName { get; set; }
-        public string Server { get; set; }
-        public bool IncludeInAutoRenew { get; set; }
+  public System.String SiteName { get; set; }
 
-        public ManagedSiteType SiteType { get; set; }
-        public List<ManagedSiteBinding> SiteBindings { get; set; }
-        public List<ManagedSiteLogItem> Logs { get; set; }
-        public List<DomainOption> DomainOptions { get; set; }
-        public CertRequestConfig RequestConfig { get; set; }
+  public System.String Server { get; set; }
 
-        public void AppendLog(ManagedSiteLogItem logItem)
-        {
-            if (this.Logs == null) this.Logs = new List<ManagedSiteLogItem>();
-            this.Logs.Add(logItem);
-        }
-    }
+  public ManagedSiteType SiteType { get; set; }
 
-    public class SiteBindingItem
-    {
-        public string Description
-        {
-            get
-            {
-                if (Host != null)
-                {
-                    return SiteName + " - " + Protocol + "://" + Host + ":" + Port;
-                }
-                else
-                {
-                    return SiteName;
-                }
-            }
-        }
+  public List<ManagedSiteBinding> SiteBindings { get; set; }
+ }
 
-        public string SiteId { get; set; }
-        public string SiteName { get; set; }
-        public string Host { get; set; }
-        public string IP { get; set; }
-        public string PhysicalPath { get; set; }
-        public bool IsHTTPS { get; set; }
-        public string Protocol { get; set; }
-        public int Port { get; set; }
-        public bool HasCertificate { get; set; }
-    }
+ public class SiteBindingItem {
+  public System.String Description => SiteName + " - " + Protocol + "://" + Host + ":" + Port;
+
+  public System.String SiteId { get; set; }
+
+  public System.String SiteName { get; set; }
+
+  public System.String Host { get; set; }
+
+  public System.String IP { get; set; }
+
+  public System.String PhysicalPath { get; set; }
+
+  public System.Boolean IsHTTPS { get; set; }
+
+  public System.String Protocol { get; set; }
+
+  public System.Int32 Port { get; set; }
+
+  public System.Boolean HasCertificate { get; set; }
+ }
 }

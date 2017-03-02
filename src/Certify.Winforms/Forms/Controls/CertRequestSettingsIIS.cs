@@ -1,337 +1,264 @@
-﻿using System;
+﻿using ACMESharp.Vault.Providers;
+using Certify.Management;
+using Certify.Models;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
-using ACMESharp.Vault.Providers;
-using Certify.Management;
-using Certify.Models;
-using System.Collections.Generic;
 
-namespace Certify.Forms.Controls
-{
-    public partial class CertRequestSettingsIIS : CertRequestBaseControl
-    {
-        private readonly IdnMapping _idnMapping = new IdnMapping();
-        private SiteManager siteManager;
-        private IISManager iisManager = new IISManager();
+namespace Certify.Forms.Controls {
+ public partial class CertRequestSettingsIIS : CertRequestBaseControl {
+  private readonly IdnMapping _idnMapping = new IdnMapping ();
 
-        private BindingSource domainListBindingSource = new BindingSource();
-        private BindingSource sanListBindingSource = new BindingSource();
-        private List<Models.DomainOption> domains = new List<Models.DomainOption>();
+  public CertRequestSettingsIIS () => InitializeComponent ();
 
-        /// <summary>
-        /// If true, all IIS websites are shown, otherwise only a single site is selected
-        /// </summary>
-        public bool IsNewCertMode { get; set; }
+  private void PopulateWebsitesFromIIS () {
+   var iisManager = new IISManager ();
+   var siteList = iisManager.GetSiteList ( includeOnlyStartedSites: false );
+   lstSites.Items.Clear ();
+   lstSites.DisplayMember = "Description";
+   foreach ( var s in siteList ) {
+    lstSites.Items.Add ( s );
+   }
+   if ( lstSites.Items.Count > 0 ) {
+    lstSites.SelectedIndex = 0;
+    RefreshSelectedWebsite ();
+   }
+  }
 
-        private ManagedSite _selectedManagedSite { get; set; }
+  private void RefreshSelectedWebsite () {
+   var selectItem = (SiteBindingItem) lstSites.SelectedItem;
+   lblDomain.Text = selectItem.Host;
+   lblWebsiteRoot.Text = selectItem.PhysicalPath;
+  }
 
-        public CertRequestSettingsIIS()
-        {
-            InitializeComponent();
+  private void ShowProgressBar () {
+   progressBar1.Enabled = true;
+   progressBar1.Visible = true;
+   btnCancel.Visible = false;
+   btnRequestCertificate.Enabled = false;
+  }
 
-            siteManager = new SiteManager(); //registry of sites we manage certificate requests for
-            siteManager.LoadSettings();
+  private void HideProgressBar () {
+   progressBar1.Enabled = false;
+   progressBar1.Visible = false;
+   btnCancel.Visible = true;
+   btnRequestCertificate.Enabled = true;
+  }
 
-            IsNewCertMode = true;
-        }
+  private void btnRequestCertificate_Click ( Object sender, EventArgs e ) {
+   if ( lstSites.SelectedItem == null ) {
+    MessageBox.Show ( "No IIS site selected" );
+    return;
+   }
 
-        public void LoadManagedSite(ManagedSite site)
-        {
-            this._selectedManagedSite = site;
+   if ( VaultManager == null ) {
+    MessageBox.Show ( "Vault Manager is null. Please report this problem." );
+   }
 
-            //use options form saved site to populate current site settings
-            PopulateSiteDomainList(site.SiteId, site);
+   //prevent further clicks on request button
+   btnRequestCertificate.Enabled = false;
+   ShowProgressBar ();
+   Cursor = Cursors.WaitCursor;
 
-            this.lstSites.Visible = false;
-        }
+   var certsApproved = false;
+   var certsStored = false;
 
-        private void PopulateWebsitesFromIIS()
-        {
-            var siteList = iisManager.GetPrimarySites(includeOnlyStartedSites: false);
-            this.lstSites.Items.Clear();
-            this.lstSites.DisplayMember = "Description";
+   var config = new CertRequestConfig ();
+   var selectItem = (SiteBindingItem) lstSites.SelectedItem;
+   config.Domain = _idnMapping.GetAscii ( selectItem.Host ); // ACME service requires international domain names in ascii mode
+   config.PerformChallengeFileCopy = true;
+   config.PerformExtensionlessConfigChecks = !chkSkipConfigCheck.Checked;
+   config.PerformExtensionlessAutoConfig = true;
+   config.WebsiteRootPath = Environment.ExpandEnvironmentVariables ( selectItem.PhysicalPath );
 
-            foreach (var s in siteList)
-            {
-                this.lstSites.Items.Add(s);
-            }
+   var vaultConfig = VaultManager.GetVaultConfig ();
 
-            if (lstSites.Items.Count > 0)
-            {
-                this.lstSites.SelectedIndex = 0;
-                RefreshSelectedWebsite();
-            }
-        }
+   //check if domain already has an associated identifier
+   var identifierAlias = VaultManager.ComputeIdentifierAlias ( config.Domain );
 
-        private void RefreshSelectedWebsite()
-        {
-            var selectItem = (SiteBindingItem)lstSites.SelectedItem;
-            //  lblDomain.Text = selectItem.Host;
-            lblWebsiteRoot.Text = selectItem.PhysicalPath;
-            txtManagedSiteName.Text = selectItem.SiteName;
+   //begin authorixation process (register identifier, request authorization if not already given)
+   var authorization = VaultManager.BeginRegistrationAndValidation ( config, identifierAlias );
 
-            //if we have already saved settings for this site, load them again
-            var existingSite = siteManager.GetManagedSite(selectItem.SiteId);
-            this.PopulateSiteDomainList(selectItem.SiteId, existingSite);
-        }
+   if ( authorization != null ) {
+    if ( authorization.Identifier.Authorization.IsPending () ) {
+     //if we attempted extensionless config checks, report any errors
+     if ( !chkSkipConfigCheck.Checked && !authorization.ExtensionlessConfigCheckedOK ) {
+      MessageBox.Show ( "Automated checks for extensionless content failed. Authorizations will not be able to complete. Change the web.config in <your site>\\.well-known\\acme-challenge and ensure you can browse to http://<your site>/.well-known/acme-challenge/configcheck before proceeding." );
+      CloseParentForm ();
+      return;
+     }
 
-        private void PopulateSiteDomainList(string siteId, ManagedSite managedSite = null)
-        {
-            //for the given selected web site, allow the user to choose which domains to combine into one certificate
-            var allSites = iisManager.GetSiteBindingList(false);
-            this.domains = new List<DomainOption>();
-            foreach (var d in allSites)
-            {
-                if (d.SiteId == siteId)
-                {
-                    DomainOption opt = new DomainOption { Domain = d.Host, IsPrimaryDomain = false, IsSelected = true };
-                    domains.Add(opt);
-                }
-            }
+     //at this point we can either get the user to manually copy the file to web site folder structure
+     //if file has already been copied we can go ahead and ask the server to verify it
 
-            if (managedSite != null && managedSite.DomainOptions != null)
-            {
-                //carry over settings from saved managed site
-                txtManagedSiteName.Text = managedSite.SiteName;
+     //ask server to check our challenge answer is present and correct
+     VaultManager.SubmitChallenge ( authorization.Identifier.Alias );
 
-                foreach (var d in domains)
-                {
-                    var opt = managedSite.DomainOptions.FirstOrDefault(o => o.Domain == d.Domain);
-                    d.IsPrimaryDomain = opt.IsPrimaryDomain;
-                    d.IsSelected = opt.IsSelected;
-                }
-            }
+     //give LE time to check our challenge answer stored on our server
+     Thread.Sleep ( 2000 );
 
-            if (domains.Any())
-            {
-                //mark first domain as primary, if we have no other settings
-                if (!domains.Any(d => d.IsPrimaryDomain == true))
-                {
-                    domains[0].IsPrimaryDomain = true;
-                }
+     VaultManager.UpdateIdentifierStatus ( authorization.Identifier.Alias );
+     VaultManager.ReloadVaultConfig ();
 
-                this.domainListBindingSource.DataSource = domains;
+     //check status of the challenge
+     var updatedIdentifier = VaultManager.GetIdentifier ( authorization.Identifier.Alias );
 
-                this.lstPrimaryDomain.DataSource = this.domainListBindingSource;
-                this.lstPrimaryDomain.DisplayMember = "Domain";
+     var challenge = updatedIdentifier.Authorization.Challenges.FirstOrDefault ( c => c.Type == "http-01" );
 
-                //create filtered view of domains for the san list
-                this.PopulateSANList();
-            }
-            else
-            {
-                MessageBox.Show("The selected site has no domain bindings setup. Configure the domains first using Edit Bindings in IIS.");
-            }
-        }
-
-        private void ShowProgressBar()
-        {
-            progressBar1.Enabled = true;
-            progressBar1.Visible = true;
-            btnCancel.Visible = false;
-            btnRequestCertificate.Enabled = false;
-        }
-
-        private void HideProgressBar()
-        {
-            progressBar1.Enabled = false;
-            progressBar1.Visible = false;
-            btnCancel.Visible = true;
-            btnRequestCertificate.Enabled = true;
-        }
-
-        private async void btnRequestCertificate_Click(object sender, EventArgs e)
-        {
-            if (lstSites.SelectedItem == null)
-            {
-                MessageBox.Show("No IIS site selected");
-                return;
-            }
-
-            //prevent further clicks on request button
-            btnRequestCertificate.Enabled = false;
-            ShowProgressBar();
-            this.Cursor = Cursors.WaitCursor;
-
-            var managedSite = GetUpdatedManagedSiteSettings();
-
-            //store the updated settings
-            siteManager.UpdatedManagedSite(managedSite);
-
-            //perform the certificate validations and request process
-            var certifyManager = new CertifyManager();
-            var result = await certifyManager.PerformCertificateRequest(VaultManager, managedSite);
-
-            if (!result.IsSuccess)
-            {
-                MessageBox.Show(result.ErrorMessage);
-            }
-            else
-            {
-                MessageBox.Show("Certificate Request Completed");
-            }
-
-            this.Cursor = Cursors.Default;
-        }
-
-        private void lstSites_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            RefreshSelectedWebsite();
-        }
-
-        private void btnCancel_Click(object sender, EventArgs e)
-        {
-        }
-
-        private void CloseParentForm()
-        {
-            Form tmp = this.FindForm();
-            tmp?.Close();
-            tmp?.Dispose();
-        }
-
-        private void CertRequestSettingsIIS_Load(object sender, EventArgs e)
-        {
-            if (this.DesignMode) return;
-
-            btnRequestCertificate.Enabled = true;
-            PopulateWebsitesFromIIS();
-            HideProgressBar();
-
-            if (lstSites.Items.Count == 0)
-            {
-                MessageBox.Show("You have no applicable IIS sites configured. Setup a website in IIS or use a Generic Request.");
-            }
-        }
-
-        private void groupBox1_Enter(object sender, EventArgs e)
-        {
-        }
-
-        private void RefreshDomainOptionSettingsFromUI()
-        {
-            //update option selected/not selected, based on current selections first (to avoid losing the users settings)
-            foreach (var i in chkListSAN.Items)
-            {
-                var d = domains.FirstOrDefault(o => o.Domain == i.ToString());
-                if (d != null)
-                {
-                    bool isChecked = false;
-                    foreach (var c in chkListSAN.CheckedItems)
-                    {
-                        if (c.ToString() == d.Domain)
-                        {
-                            isChecked = true;
-                            break;
-                        }
-                    }
-                    d.IsSelected = isChecked;
-                    d.IsPrimaryDomain = false;
-                }
-            }
-
-            //selected item becomes the primary domain
-            var selectedDomainOption = ((DomainOption)lstPrimaryDomain.SelectedItem);
-            foreach (var d in domains)
-            {
-                if (d.Domain == selectedDomainOption.Domain)
-                {
-                    d.IsPrimaryDomain = true;
-                }
-                else
-                {
-                    d.IsPrimaryDomain = false;
-                }
-            }
-        }
-
-        private void lstPrimaryDomain_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            //refresh san list based on the primary selected domain
-            RefreshDomainOptionSettingsFromUI();
-
-            //now clear san list and populate it again
-            this.PopulateSANList();
-        }
-
-        private void PopulateSANList()
-        {
-            this.chkListSAN.Items.Clear();
-            foreach (var d in domains.Where(d => d.IsPrimaryDomain == false))
-            {
-                this.chkListSAN.Items.Add(d.Domain, d.IsSelected);
-            }
-        }
-
-        private void btnSave_Click(object sender, EventArgs e)
-        {
-            //save settings
-            var s = GetUpdatedManagedSiteSettings();
-            siteManager.UpdatedManagedSite(s);
-
-            MessageBox.Show("Managed Site settings saved.");
-
-            //TODO: refresh parent app list of managed sites
-        }
-
-        /// <summary>
-        /// For the given set of options get a new CertRequestConfig to store
-        /// </summary>
-        /// <returns></returns>
-        private ManagedSite GetUpdatedManagedSiteSettings()
-        {
-            CertRequestConfig config = new CertRequestConfig();
-
-            RefreshDomainOptionSettingsFromUI();
-
-            var primaryDomain = this.domains.FirstOrDefault(d => d.IsPrimaryDomain == true && d.IsSelected == true);
-            if (primaryDomain == null) primaryDomain = this.domains.FirstOrDefault(d => d.IsSelected == true);
-
-            config.PrimaryDomain = _idnMapping.GetAscii(primaryDomain.Domain); // ACME service requires international domain names in ascii mode
-            if (this.domains.Count(d => d.IsSelected) > 1)
-            {
-                //apply remaining selected domains as subject alternative names
-                config.SubjectAlternativeNames =
-                    this.domains.Where(dm => dm.Domain != primaryDomain.Domain && dm.IsSelected == true)
-                    .Select(i => i.Domain)
-                    .ToArray();
-            }
-
-            config.PerformChallengeFileCopy = true;
-            config.PerformExtensionlessConfigChecks = !chkSkipConfigCheck.Checked;
-            config.PerformExtensionlessAutoConfig = true;
-
-            config.EnableFailureNotifications = chkEnableNotifications.Checked;
-
-            //determine if this site has an existing entry in Managed Sites, if so use that, otherwise start a new one
-            ManagedSite managedSite = _selectedManagedSite;
-
-            if (managedSite == null)
-            {
-                managedSite = new ManagedSite();
-
-                var siteInfo = (SiteBindingItem)lstSites.SelectedItem;
-
-                managedSite.SiteId = siteInfo.SiteId;
-                managedSite.IncludeInAutoRenew = chkIncludeInAutoRenew.Checked;
-                config.WebsiteRootPath = Environment.ExpandEnvironmentVariables(siteInfo.PhysicalPath);
-            }
-            else
-            {
-                managedSite.IncludeInAutoRenew = chkIncludeInAutoRenew.Checked;
-            }
-
-            managedSite.SiteType = ManagedSiteType.LocalIIS;
-            managedSite.SiteName = txtManagedSiteName.Text;
-
-            //store domain options settings and request config for this site so we can replay for automated renewal
-            managedSite.DomainOptions = this.domains;
-            managedSite.RequestConfig = config;
-
-            return managedSite;
-        }
+     //if all OK, we will be ready to fetch our certificate
+     if ( challenge?.Status == "valid" ) {
+      certsApproved = true;
+     } else {
+      if ( challenge != null ) {
+       MessageBox.Show ( "Challenge not yet completed. Check that http://" + config.Domain + "/" + challenge.ToString () + " path/file is present and accessible in your web browser." );
+      } else {
+       if ( challenge.Status == "invalid" ) {
+        MessageBox.Show ( "Challenge failed to complete. Check that http://" + config.Domain + "/" + challenge.ToString () + " path/file is present and accessible in your web browser. You may require extensionless file type mappings." );
+        CloseParentForm ();
+        return;
+       }
+      }
+     }
+    } else {
+     //already valid, challenge not required
+     certsApproved = true;
     }
+   } else {
+    MessageBox.Show ( "Could not begin authorization. Check Logs. Ensure the domain being authorized is whitelisted with LetsEncrypt service." );
+   }
+
+   //create certs for current authorization
+   String certRef = null;
+   var identifier = authorization.Identifier;
+   //if (certsApproved)
+   {
+    var v = VaultManager.GetVaultConfig ();
+    v.PkiTool = "BouncyCastle"; //"OpenSSL-LIB";
+
+    certRef = VaultManager.CreateCertificate ( identifierAlias );
+    VaultManager.UpdateIdentifierStatus ( identifierAlias );
+    identifier = VaultManager.GetIdentifier ( identifierAlias, true );
+
+    VaultManager.ReloadVaultConfig ();
+    if ( VaultManager.CertExists ( identifierAlias ) ) {
+     certsStored = true;
+    }
+   }
+
+   //auto setup/install
+   var certInfo = VaultManager.GetCertificate ( certRef );
+   if ( certInfo?.CrtDerFile == null ) {
+    //failed to get cert first time, try again
+    Thread.Sleep ( 2000 );
+
+    VaultManager.PowershellManager.UpdateCertificate ( certRef );
+
+    certInfo = VaultManager.GetCertificate ( certRef, reloadVaultConfig: true );
+   }
+
+   //txtOutput.Text = "To complete this request copy the file " + CurrentAuthorization.TempFilePath + " to the following location under your website root (note: no file extension): " + CurrentAuthorization.Challenge.ChallengeAnswer.Key;
+   //ReloadVault();
+
+   Cursor = Cursors.Default;
+
+   if ( !certsStored ) {
+    if ( certsApproved ) {
+     MessageBox.Show ( "Certificates approved but not yet stored in vault. Try again later." );
+     CloseParentForm ();
+     return;
+    } else {
+     MessageBox.Show ( "Certificates not approved yet. Authorization challenge may have failed. Try again later." );
+     CloseParentForm ();
+     return;
+    }
+   } else {
+    if ( certInfo != null ) {
+     var certFolderPath = VaultManager.GetCertificateFilePath ( certInfo.Id, LocalDiskVault.ASSET );
+     var pfxFile = certRef + "-all.pfx";
+     var pfxPath = Path.Combine ( certFolderPath, pfxFile );
+
+     if ( !System.IO.Directory.Exists ( certFolderPath ) ) {
+      System.IO.Directory.CreateDirectory ( certFolderPath );
+     }
+     if ( !File.Exists ( pfxPath ) ) {
+      //export pfx
+      VaultManager.ExportCertificate ( certRef, pfxOnly: true );
+     }
+
+     if ( File.Exists ( pfxPath ) ) {
+      //VaultManager.UpdateIdentifierStatus(certInfo.IdentifierRef);
+      //identifier = VaultManager.GetIdentifier(certInfo.IdentifierRef, true);
+
+      var iisManager = new IISManager ();
+      if ( identifier == null || identifier.Dns == null ) {
+       MessageBox.Show ( "Error: identifier/dns is null. Cannot match domain for binding" );
+      } else {
+       if ( iisManager.InstallCertForDomain ( identifier.Dns, pfxPath, cleanupCertStore: true, skipBindings: !chkAutoBindings.Checked ) ) {
+        //all done
+        MessageBox.Show ( "Certificate installed and SSL bindings updated for " + identifier.Dns, Properties.Resources.AppName );
+        CloseParentForm ();
+        return;
+       } else {
+        MessageBox.Show ( "An error occurred installing the certificate. Certificate file may not be valid." );
+        CloseParentForm ();
+        return;
+       }
+       /*
+       if (chkAutoBindings.Checked)
+       {
+           //auto store and create site bindings
+           MessageBox.Show("Your certificate has been imported and SSL bindings updated for " + config.Domain, Properties.Resources.AppName);
+           CloseParentForm();
+           return;
+       }
+       else
+       {
+           //auto store cert
+           MessageBox.Show("Your certificate has been imported and is ready for you to configure IIS bindings.", Properties.Resources.AppName);
+           CloseParentForm();
+           return;
+       }*/
+      }
+     } else {
+      MessageBox.Show ( "Failed to generate PFX file for the certificate.", Properties.Resources.AppName );
+      CloseParentForm ();
+      return;
+     }
+    } else {
+     //cert was null
+     MessageBox.Show ( "Certificate generation was not successful. Certificate not valid or not yet authorized.", Properties.Resources.AppName );
+     CloseParentForm ();
+     return;
+    }
+   }
+  }
+
+  private void lstSites_SelectedIndexChanged ( Object sender, EventArgs e ) => RefreshSelectedWebsite ();
+
+  private void btnCancel_Click ( Object sender, EventArgs e ) {
+  }
+
+  private void CloseParentForm () {
+   var tmp = FindForm ();
+   tmp?.Close ();
+   tmp?.Dispose ();
+  }
+
+  private void CertRequestSettingsIIS_Load ( Object sender, EventArgs e ) {
+   if ( DesignMode ) {
+    return;
+   }
+
+   btnRequestCertificate.Enabled = true;
+   PopulateWebsitesFromIIS ();
+   HideProgressBar ();
+
+   if ( lstSites.Items.Count == 0 ) {
+    MessageBox.Show ( "You have no applicable IIS sites configured. Setup a website in IIS or use a Generic Request." );
+   }
+  }
+ }
 }

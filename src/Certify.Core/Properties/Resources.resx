@@ -141,10 +141,10 @@ This software uses the following Open Source software (or significant portions o
     <value>You are using the latest version.</value>
   </data>
   <data name="AppUpdateCheckURI" xml:space="preserve">
-    <value>https://certify.webprofusion.com/downloads/version.json</value>
+    <value>http://certify.webprofusion.com/downloads/version.json</value>
   </data>
   <data name="AppWebsiteURL" xml:space="preserve">
-    <value>https://certify.webprofusion.com</value>
+    <value>http://certify.webprofusion.com</value>
   </data>
   <data name="GettingStartedExistingVault" xml:space="preserve">
     <value>Get Started: Browse the Vault on the left to see current certificate information.</value>
