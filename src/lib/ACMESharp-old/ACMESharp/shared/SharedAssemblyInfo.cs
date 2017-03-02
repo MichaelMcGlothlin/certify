@@ -1,9 +1,0 @@
-﻿using System.Reflection;
-
-// General Information about an assembly is controlled through the following
-// set of attributes. Change these attribute values to modify the information
-// associated with an assembly.
-[assembly: AssemblyCompany ( "github.com/ebekker/ACMESharp" )]
-[assembly: AssemblyProduct ( "ACMESharp" )]
-[assembly: AssemblyCopyright ( "Copyright © 2016 Eugene Bekker. All rights reserved." )]
-[assembly: AssemblyTrademark ( "" )]
