@@ -234,3 +234,10 @@ _Pvt_Extensions
 # FAKE - F# Make
 .fake/
 *.exe
+
+*.orig
+*.bak
+*.BACKUP.*
+*.BASE.*
+*.LOCAL.*
+*.REMOTE.*
