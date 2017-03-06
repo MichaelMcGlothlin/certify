@@ -24,91 +24,86 @@ namespace Certify.Forms.Controls
             siteManager = new SiteManager();
         }
 
-        private MainForm GetParentMainForm()
-        {
-            return (MainForm)this.Parent.FindForm();
-        }
+  private MainForm GetParentMainForm () => (MainForm) Parent.FindForm ();
 
-        private void RefreshManagedSitesList()
+  private void RefreshManagedSitesList()
         {
             siteManager.LoadSettings();
             var sites = siteManager.GetManagedSites();
 
-            this.listView1.ShowGroups = true;
+   listView1.ShowGroups = true;
 
-            if (this.listView1.Items != null)
+            if ( listView1.Items != null)
             {
-                this.listView1.Items.Clear();
+    listView1.Items.Clear();
             }
 
             foreach (var s in sites)
             {
-                var siteNode = new ListViewItem(s.SiteName);
-                siteNode.Tag = s.SiteId;
-                siteNode.ImageIndex = 0;
-                this.listView1.Items.Add(siteNode);
+    var siteNode = new ListViewItem ( s.SiteName ) {
+     Tag = s.SiteId,
+     ImageIndex = 0
+    };
+    listView1.Items.Add(siteNode);
                 if (s.IncludeInAutoRenew)
                 {
-                    siteNode.Group = this.listView1.Groups[0];
+                    siteNode.Group = listView1.Groups[0];
                 }
                 else
                 {
-                    siteNode.Group = this.listView1.Groups[1];
+                    siteNode.Group = listView1.Groups[1];
                 }
             }
         }
 
-        private void ManagedSites_Load(object sender, EventArgs e)
+        private void ManagedSites_Load( Object sender, EventArgs e)
         {
-            if (!this.DesignMode)
+            if (!DesignMode )
             {
-                this.RefreshManagedSitesList();
-                this.certRequestSettingsIIS1.Visible = false;
+    RefreshManagedSitesList ();
+    certRequestSettingsIIS1.Visible = false;
             }
         }
 
-        private void listView1_SelectedIndexChanged(object sender, EventArgs e)
+        private void listView1_SelectedIndexChanged( Object sender, EventArgs e)
         {
-            this.lblInfo.Text = "";
+   lblInfo.Text = "";
 
-            this.selectedSite = null;
+   selectedSite = null;
 
             //selected site
-            if (this.listView1.SelectedItems.Count > 0)
+            if ( listView1.SelectedItems.Count > 0)
             {
-                var selectedNode = this.listView1.SelectedItems[0];
+                var selectedNode = listView1.SelectedItems[0];
                 if (selectedNode.Tag != null)
                 {
                     var site = siteManager.GetManagedSite(selectedNode.Tag.ToString());
                     //  if (site.RequestConfig != null && site.RequestConfig.PrimaryDomain != null)
                     {
-                        this.selectedSite = site;
-                        this.PopulateSiteDetails(site);
+      selectedSite = site;
+      PopulateSiteDetails ( site);
                     }
                 }
             }
         }
 
-        internal void ReloadManagedSites()
+  internal void ReloadManagedSites () => RefreshManagedSitesList ();
+
+  private void PopulateSiteDetails(ManagedSite site)
         {
-            this.RefreshManagedSitesList();
+   certRequestSettingsIIS1.LoadManagedSite(site);
+   certRequestSettingsIIS1.Visible = true;
         }
 
-        private void PopulateSiteDetails(ManagedSite site)
+        private async void button1_Click( Object sender, EventArgs e)
         {
-            this.certRequestSettingsIIS1.LoadManagedSite(site);
-            this.certRequestSettingsIIS1.Visible = true;
-        }
-
-        private async void button1_Click(object sender, EventArgs e)
-        {
-            if (this.selectedSite != null)
+            if ( selectedSite != null)
             {
                 var certifyManager = new CertifyManager();
                 var vaultManager = GetParentMainForm().VaultManager;
 
                 siteManager.LoadSettings();
-                var result = await certifyManager.PerformCertificateRequest(vaultManager, this.selectedSite);
+                var result = await certifyManager.PerformCertificateRequest(vaultManager, selectedSite );
                 if (!result.IsSuccess)
                 {
                     MessageBox.Show("Failed to request a new certificate.");
@@ -120,19 +115,19 @@ namespace Certify.Forms.Controls
             }
         }
 
-        private void listView1_MouseUp(object sender, MouseEventArgs e)
+        private void listView1_MouseUp( Object sender, MouseEventArgs e)
         {
             //check for right click
         }
 
-        private void toolStripMenuItemDelete_Click(object sender, EventArgs e)
+        private void toolStripMenuItemDelete_Click( Object sender, EventArgs e)
         {
             //delete option selected
 
             // User has clicked delete in tree view context menu
-            if (this.listView1.SelectedItems != null && this.listView1.SelectedItems.Count > 0)
+            if ( listView1.SelectedItems != null && listView1.SelectedItems.Count > 0)
             {
-                var node = this.listView1.SelectedItems[0];//.SelectedNode;
+                var node = listView1.SelectedItems[0];//.SelectedNode;
 
                 if (node != null)
                 {
@@ -141,12 +136,12 @@ namespace Certify.Forms.Controls
                     {
                         if (MessageBox.Show("Are you sure you want to delete the Certify settings for the managed site '" + site.SiteName + "'?", "Confirm Delete", MessageBoxButtons.YesNoCancel) == DialogResult.Yes)
                         {
-                            //delete site
-                            this.siteManager.DeleteManagedSite(site);
+       //delete site
+       siteManager.DeleteManagedSite(site);
 
-                            //refresh managed sites list
-                            this.ReloadManagedSites();
-                            this.certRequestSettingsIIS1.Visible = false;
+       //refresh managed sites list
+       ReloadManagedSites ();
+       certRequestSettingsIIS1.Visible = false;
                         }
                     }
                 }

@@ -18,9 +18,6 @@ namespace Certify.Forms.Controls.Details
             this.parentApp = parentApp;
         }
 
-        public void Populate(string item)
-        {
-            this.lblDetails.Text = item;
-        }
-    }
+  public void Populate ( String item ) => lblDetails.Text = item;
+ }
 }

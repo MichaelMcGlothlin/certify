@@ -27,9 +27,9 @@ namespace Certify.Forms
             this.vaultManager = vaultManager;
         }
 
-        private void btnCreateContact_Click(object sender, EventArgs e)
+        private void btnCreateContact_Click( Object sender, EventArgs e)
         {
-            bool isValidEmail = true;
+   var isValidEmail = true;
             if (String.IsNullOrEmpty(txtContacts.Text))
             {
                 isValidEmail = false;
@@ -48,7 +48,7 @@ namespace Certify.Forms
             if (!isValidEmail)
             {
                 MessageBox.Show("Ooops, you forgot to provide a valid email address.");
-                this.DialogResult = DialogResult.None;
+    DialogResult = DialogResult.None;
                 return;
             }
 
@@ -63,23 +63,23 @@ namespace Certify.Forms
                     }
 
                     btnCreateContact.Enabled = false;
-                    this.Cursor = Cursors.WaitCursor;
+     Cursor = Cursors.WaitCursor;
                     vaultManager.AddNewRegistrationAndAcceptTOS("mailto:" + txtContacts.Text);
-                    this.Cursor = Cursors.Default;
+     Cursor = Cursors.Default;
                 }
             }
             else
             {
                 MessageBox.Show("You need to agree to the latest LetsEncrypt.org Subscriber Agreement.");
-                this.DialogResult = DialogResult.None;
+    DialogResult = DialogResult.None;
             }
         }
 
-        private void label1_Click(object sender, EventArgs e)
+        private void label1_Click( Object sender, EventArgs e)
         {
         }
 
-        private void chkAgreeTandCs_CheckedChanged(object sender, EventArgs e)
+        private void chkAgreeTandCs_CheckedChanged( Object sender, EventArgs e)
         {
             if (chkAgreeTandCs.Checked)
             {

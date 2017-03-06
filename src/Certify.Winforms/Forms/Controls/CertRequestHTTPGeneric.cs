@@ -12,18 +12,18 @@ namespace Certify.Forms.Controls
 {
     public partial class CertRequestHTTPGeneric : CertRequestBaseControl
     {
-        private int wizardStep = 1;
+        private Int32 wizardStep = 1;
 
         public CertRequestHTTPGeneric()
         {
             InitializeComponent();
         }
 
-        private void tabPage1_Click(object sender, EventArgs e)
+        private void tabPage1_Click( Object sender, EventArgs e)
         {
         }
 
-        private bool IsStepValid()
+        private Boolean IsStepValid ()
         {
             if (wizardStep == 1)
             {
@@ -35,7 +35,7 @@ namespace Certify.Forms.Controls
             return true;
         }
 
-        private void btnNext_Click(object sender, EventArgs e)
+        private void btnNext_Click( Object sender, EventArgs e)
         {
             if (IsStepValid())
             {

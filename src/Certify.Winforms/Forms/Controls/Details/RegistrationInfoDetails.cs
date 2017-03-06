@@ -15,7 +15,7 @@ namespace Certify.Forms.Controls.Details
 
         public void Populate(RegistrationInfo info)
         {
-            this.registrationInfo = info;
+   registrationInfo = info;
 
             lblID.Text = info.Id.ToString();
             lblAlias.Text = info.Alias;

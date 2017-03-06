@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace Certify.Models {
+ public class CertificateRequestResult {
+  public System.Boolean IsSuccess { get; set; }
 
-namespace Certify.Models
-{
-    public class CertificateRequestResult
-    {
-        public bool IsSuccess { get; set; }
-        public string ErrorMessage { get; set; }
-        public object Result { get; set; }
-    }
+  public System.String ErrorMessage { get; set; }
+
+  public System.Object Result { get; set; }
+ }
 }

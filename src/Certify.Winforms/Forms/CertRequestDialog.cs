@@ -37,14 +37,14 @@ namespace Certify.Forms
             if (!this.vaultManager.HasContacts())
             {
                 MessageBox.Show("You need to register a valid contact before you can proceed.");
-                this.DialogResult = DialogResult.Cancel;
-                this.Close();
+    DialogResult = DialogResult.Cancel;
+    Close ();
             }
         }
 
         private void InitSelectedCertTypeControl()
         {
-            if (lstRequestType.SelectedIndex == (int)CertControlType.IIS)
+            if (lstRequestType.SelectedIndex == (Int32) CertControlType.IIS)
             {
                 var iisManager = new IISManager();
                 var version = iisManager.GetIisVersion();
@@ -56,14 +56,15 @@ namespace Certify.Forms
                 }
                 else
                 {
-                    //IIS selected, setup IIS cert request control
-                    var iisRequestControl = new CertRequestSettingsIIS();
-                    iisRequestControl.IsNewManagedSiteMode = true;
-                    SetupSelectedCertRequestControl(iisRequestControl);
+     //IIS selected, setup IIS cert request control
+     var iisRequestControl = new CertRequestSettingsIIS () {
+      IsNewManagedSiteMode = true
+     };
+     SetupSelectedCertRequestControl (iisRequestControl);
                 }
             }
 
-            if (lstRequestType.SelectedIndex == (int)CertControlType.GenericHttp)
+            if (lstRequestType.SelectedIndex == (Int32) CertControlType.GenericHttp)
             {
                 SetupSelectedCertRequestControl(new CertRequestHTTPGeneric());
             }
@@ -71,15 +72,13 @@ namespace Certify.Forms
 
         private void SetupSelectedCertRequestControl(CertRequestBaseControl certControl)
         {
-            certControl.VaultManager = this.vaultManager;
-            this.panelCertControl.Controls.Clear();
-            this.panelCertControl.Controls.Add(certControl);
+            certControl.VaultManager = vaultManager;
+   panelCertControl.Controls.Clear();
+   panelCertControl.Controls.Add(certControl);
         }
 
-        private void lstRequestType_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            //TODO: support for loading the required control type for the type of request we're going to require
-            InitSelectedCertTypeControl();
-        }
-    }
+  private void lstRequestType_SelectedIndexChanged ( Object sender, EventArgs e ) =>
+      //TODO: support for loading the required control type for the type of request we're going to require
+      InitSelectedCertTypeControl ();
+ }
 }

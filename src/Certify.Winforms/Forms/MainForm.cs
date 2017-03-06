@@ -25,13 +25,13 @@ namespace Certify
     {
         internal VaultManager VaultManager = null;
         private TelemetryClient tc = null;
-        private bool requirePowershell = false;
+        private Boolean requirePowershell = false;
 
         public MainForm()
         {
             InitializeComponent();
 
-            this.Text = Properties.Resources.LongAppName;
+   Text = Properties.Resources.LongAppName;
             if (Properties.Settings.Default.CheckForUpdatesAtStartup)
             {
                 PerformCheckForUpdates(silent: true);
@@ -57,31 +57,22 @@ namespace Certify
             }
         }
 
-        internal void TrackPageView(string pageName)
-        {
-            tc?.TrackPageView(pageName);
-        }
+  internal void TrackPageView ( String pageName ) => tc?.TrackPageView ( pageName );
 
-        private void fileToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
+  private void fileToolStripMenuItem_Click ( Object sender, EventArgs e ) => Application.Exit ();
 
-        private void ReloadVault()
+  private void ReloadVault()
         {
             //TODO: make VaultManager an app-wide singleton
             VaultManager.ReloadVaultConfig();
-            this.vaultExplorer1.ReloadVault();
+   vaultExplorer1.ReloadVault();
 
-            this.RefreshManagedSites();
+   RefreshManagedSites ();
         }
 
-        internal void RefreshManagedSites()
-        {
-            this.managedSites1.ReloadManagedSites();
-        }
+  internal void RefreshManagedSites () => managedSites1.ReloadManagedSites ();
 
-        private void ShowCertificateRequestDialog()
+  private void ShowCertificateRequestDialog()
         {
             try
             {
@@ -123,12 +114,12 @@ namespace Certify
             ReloadVault();
         }
 
-        private void MainForm_Shown(object sender, EventArgs e)
+        private void MainForm_Shown( Object sender, EventArgs e)
         {
             InitAI();
             TrackPageView(nameof(MainForm));
 
-            if (this.requirePowershell)
+            if ( requirePowershell )
             {
                 var powershellVersion = PowershellManager.GetPowershellVersion();
                 if (powershellVersion < 4)
@@ -140,7 +131,7 @@ namespace Certify
                 }
             }
 
-            this.VaultManager = new VaultManager(Properties.Settings.Default.VaultPath, LocalDiskVault.VAULT);
+   VaultManager = new VaultManager(Properties.Settings.Default.VaultPath, LocalDiskVault.VAULT);
 
             if (Properties.Settings.Default.ShowBetaWarning)
             {
@@ -162,13 +153,9 @@ namespace Certify
             ReloadVault();
         }
 
-        private void reloadVaultToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ReloadVault();
-            //TODO: inform vault control of changes
-        }
+  private void reloadVaultToolStripMenuItem_Click ( Object sender, EventArgs e ) => ReloadVault ();
 
-        private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
+  private void aboutToolStripMenuItem_Click( Object sender, EventArgs e)
         {
             using (var aboutDialog = new AboutDialog())
             {
@@ -176,12 +163,9 @@ namespace Certify
             }
         }
 
-        private async void checkForUpdatesToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            await PerformCheckForUpdates(silent: false);
-        }
+  private async void checkForUpdatesToolStripMenuItem_Click ( Object sender, EventArgs e ) => await PerformCheckForUpdates ( silent: false );
 
-        private async Task<bool> PerformCheckForUpdates(bool silent = false)
+  private async Task<Boolean> PerformCheckForUpdates( Boolean silent = false)
         {
             var updateCheck = await new Util().CheckForUpdates(Application.ProductVersion);
 
@@ -192,7 +176,7 @@ namespace Certify
                     var gotoDownload = MessageBox.Show(updateCheck.Message.Body + "\r\nVisit download page now?", Properties.Resources.AppName, MessageBoxButtons.YesNo);
                     if (gotoDownload == DialogResult.Yes)
                     {
-                        ProcessStartInfo sInfo = new ProcessStartInfo(Properties.Resources.AppWebsiteURL);
+                        var sInfo = new ProcessStartInfo(Properties.Resources.AppWebsiteURL);
                         Process.Start(sInfo);
                     }
                 }
@@ -207,12 +191,9 @@ namespace Certify
             return true;
         }
 
-        private void changeVaultToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            LocateOrCreateVault(false);
-        }
+  private void changeVaultToolStripMenuItem_Click ( Object sender, EventArgs e ) => LocateOrCreateVault ( false );
 
-        private bool LocateOrCreateVault(bool useDefaultCreationPath = true)
+  private Boolean LocateOrCreateVault ( Boolean useDefaultCreationPath = true)
         {
             var promptResult = MessageBox.Show("Do you want to create a new vault? Choose 'No' to browse to an existing vault folder.", "Change Vault", MessageBoxButtons.YesNoCancel);
 
@@ -220,7 +201,7 @@ namespace Certify
             {
                 var useProductionPrompt = MessageBox.Show("Do you want to use the live LetsEncrypt.org API? Choose 'No' to use the staging (test) API for this vault.", Properties.Resources.AppName, MessageBoxButtons.YesNo);
 
-                bool useStagingAPI = false;
+    var useStagingAPI = false;
                 if (useProductionPrompt == DialogResult.No)
                 {
                     useStagingAPI = true;
@@ -232,7 +213,7 @@ namespace Certify
                     useDefaultCreationPath = true;
                 }
 
-                string newVaultPath = Properties.Settings.Default.DefaultVaultPath;
+    var newVaultPath = Properties.Settings.Default.DefaultVaultPath;
                 if (!useDefaultCreationPath)
                 {
                     //browse to a follder to store vault in
@@ -287,38 +268,23 @@ namespace Certify
             return false;
         }
 
-        private void toolStripButtonNewContact_Click(object sender, EventArgs e)
-        {
-            ShowContactRegistrationDialog();
-        }
+  private void toolStripButtonNewContact_Click ( Object sender, EventArgs e ) => ShowContactRegistrationDialog ();
 
-        private void contactRegistrationToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ShowContactRegistrationDialog();
-        }
+  private void contactRegistrationToolStripMenuItem_Click ( Object sender, EventArgs e ) => ShowContactRegistrationDialog ();
 
-        private void toolStripButtonNewCertificate_Click(object sender, EventArgs e)
-        {
-            ShowCertificateRequestDialog();
-        }
+  private void toolStripButtonNewCertificate_Click ( Object sender, EventArgs e ) => ShowCertificateRequestDialog ();
 
-        private void domainCertificateToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ShowCertificateRequestDialog();
-        }
+  private void domainCertificateToolStripMenuItem_Click ( Object sender, EventArgs e ) => ShowCertificateRequestDialog ();
 
-        private void websiteToolStripMenuItem_Click(object sender, EventArgs e)
+  private void websiteToolStripMenuItem_Click( Object sender, EventArgs e)
         {
-            ProcessStartInfo sInfo = new ProcessStartInfo(Properties.Resources.AppWebsiteURL);
+            var sInfo = new ProcessStartInfo(Properties.Resources.AppWebsiteURL);
             Process.Start(sInfo);
         }
 
-        private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ShowSettingsDialog();
-        }
+  private void settingsToolStripMenuItem_Click ( Object sender, EventArgs e ) => ShowSettingsDialog ();
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+  private void MainForm_FormClosing( Object sender, FormClosingEventArgs e)
         {
             Cursor.Current = Cursors.WaitCursor;
             if (tc != null)
@@ -331,21 +297,21 @@ namespace Certify
             base.OnClosing(e);
         }
 
-        private void cleanupVaultToolStripMenuItem_Click(object sender, EventArgs e)
+        private void cleanupVaultToolStripMenuItem_Click( Object sender, EventArgs e)
         {
             VaultManager.CleanupVault();
             ReloadVault();
         }
 
-        private void MainForm_Load(object sender, EventArgs e)
+        private void MainForm_Load( Object sender, EventArgs e)
         {
         }
 
-        private void toolStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        private void toolStrip1_ItemClicked( Object sender, ToolStripItemClickedEventArgs e)
         {
         }
 
-        private async void toolStripButtonRenewAll_Click(object sender, EventArgs e)
+        private async void toolStripButtonRenewAll_Click( Object sender, EventArgs e)
         {
             //check if there are any managed sites to renewal, if so offer to renew them
 
@@ -364,7 +330,7 @@ namespace Certify
             }
         }
 
-        private void managedSites1_Load(object sender, EventArgs e)
+        private void managedSites1_Load( Object sender, EventArgs e)
         {
         }
     }
