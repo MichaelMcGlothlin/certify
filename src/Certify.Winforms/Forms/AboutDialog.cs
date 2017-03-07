@@ -16,15 +16,15 @@ namespace Certify.Forms
         public AboutDialog()
         {
             InitializeComponent();
-   lblAppName.Text = Properties.Resources.LongAppName;
-   lblAppVersion.Text = ProductVersion + " - " + Properties.Resources.ReleaseDate;
-   lnkPublisherWebsite.Text = Properties.Resources.AppWebsiteURL;
-   txtCredits.Text = Properties.Resources.Credits;
+            this.lblAppName.Text = Properties.Resources.LongAppName;
+            this.lblAppVersion.Text = ProductVersion + " - " + Properties.Resources.ReleaseDate;
+            this.lnkPublisherWebsite.Text = Properties.Resources.AppWebsiteURL;
+            this.txtCredits.Text = Properties.Resources.Credits;
         }
 
-        private void lnkPublisherWebsite_LinkClicked( Object sender, LinkLabelLinkClickedEventArgs e)
+        private void lnkPublisherWebsite_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            var sInfo = new ProcessStartInfo(Properties.Resources.AppWebsiteURL);
+            ProcessStartInfo sInfo = new ProcessStartInfo(Properties.Resources.AppWebsiteURL);
             Process.Start(sInfo);
         }
     }

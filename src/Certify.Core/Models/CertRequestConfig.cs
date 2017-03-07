@@ -1,21 +1,22 @@
-﻿namespace Certify.Models {
- public class CertRequestConfig {
-  public System.String PrimaryDomain { get; set; }
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-  public System.String[] SubjectAlternativeNames { get; set; }
+namespace Certify.Models
+{
+    public class CertRequestConfig
+    {
+        public string PrimaryDomain { get; set; }
+        public string[] SubjectAlternativeNames { get; set; }
+        public string WebsiteRootPath { get; set; }
+        public bool PerformChallengeFileCopy { get; set; }
 
-  public System.String WebsiteRootPath { get; set; }
-
-  public System.Boolean PerformChallengeFileCopy { get; set; }
-
-  public System.Boolean PerformExtensionlessConfigChecks { get; set; }
-
-  public System.Boolean PerformExtensionlessAutoConfig { get; set; }
-
-  public System.Boolean PerformAutomatedCertBinding { get; set; }
-
-  public System.Boolean EnableFailureNotifications { get; set; }
-
-  public System.String ChallengeType { get; set; }
- }
+        public bool PerformExtensionlessConfigChecks { get; set; }
+        public bool PerformExtensionlessAutoConfig { get; set; }
+        public bool PerformAutomatedCertBinding { get; set; }
+        public bool EnableFailureNotifications { get; set; }
+        public string ChallengeType { get; set; }
+    }
 }

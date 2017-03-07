@@ -31,11 +31,11 @@ namespace Certify.Forms
             Properties.Settings.Default.Save();
         }
 
-        private void label1_Click( Object sender, EventArgs e)
+        private void label1_Click(object sender, EventArgs e)
         {
         }
 
-        private void btnLockdown_Click( Object sender, EventArgs e)
+        private void btnLockdown_Click(object sender, EventArgs e)
         {
             var prompt = MessageBox.Show("This will create/update system-wide registry keys disabling some known insecure SSL protocols and ciphers. Do you wish to continue?", Properties.Resources.AppName, MessageBoxButtons.YesNo);
 

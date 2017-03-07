@@ -24,7 +24,7 @@ namespace Certify.Forms.Controls
         /// <summary>
         /// If true, all IIS websites are shown, otherwise only a single site is selected
         /// </summary>
-        public Boolean IsNewManagedSiteMode { get; set; }
+        public bool IsNewCertMode { get; set; }
 
         private ManagedSite _selectedManagedSite { get; set; }
 
@@ -35,34 +35,33 @@ namespace Certify.Forms.Controls
             siteManager = new SiteManager(); //registry of sites we manage certificate requests for
             siteManager.LoadSettings();
 
-            IsNewManagedSiteMode = false;
+            IsNewCertMode = true;
         }
 
         public void LoadManagedSite(ManagedSite site)
         {
-   IsNewManagedSiteMode = false;
-   _selectedManagedSite = site;
+            this._selectedManagedSite = site;
 
             //use options form saved site to populate current site settings
-            PopulateManagedSiteSettings(site.SiteId, site);
+            PopulateSiteDomainList(site.SiteId, site);
 
-   lstSites.Visible = false;
+            this.lstSites.Visible = false;
         }
 
         private void PopulateWebsitesFromIIS()
         {
             var siteList = iisManager.GetPrimarySites(includeOnlyStartedSites: false);
-   lstSites.Items.Clear();
-   lstSites.DisplayMember = "Description";
+            this.lstSites.Items.Clear();
+            this.lstSites.DisplayMember = "Description";
 
             foreach (var s in siteList)
             {
-    lstSites.Items.Add(s);
+                this.lstSites.Items.Add(s);
             }
 
             if (lstSites.Items.Count > 0)
             {
-    lstSites.SelectedIndex = 0;
+                this.lstSites.SelectedIndex = 0;
                 RefreshSelectedWebsite();
             }
         }
@@ -76,27 +75,19 @@ namespace Certify.Forms.Controls
 
             //if we have already saved settings for this site, load them again
             var existingSite = siteManager.GetManagedSite(selectItem.SiteId);
-   PopulateManagedSiteSettings ( selectItem.SiteId, existingSite);
+            this.PopulateSiteDomainList(selectItem.SiteId, existingSite);
         }
 
-        private void PopulateManagedSiteSettings( String siteId, ManagedSite managedSite = null)
+        private void PopulateSiteDomainList(string siteId, ManagedSite managedSite = null)
         {
-   //set defaults first
-   chkSkipConfigCheck.Checked = false;
-   chkAutoBindings.Checked = true;
-   chkEnableNotifications.Checked = true;
-   chkIncludeInAutoRenew.Checked = true;
-   //this.txtManagedSiteName.Text = "";
-   chkListSAN.Items.Clear();
-
             //for the given selected web site, allow the user to choose which domains to combine into one certificate
             var allSites = iisManager.GetSiteBindingList(false);
-   domains = new List<DomainOption>();
+            this.domains = new List<DomainOption>();
             foreach (var d in allSites)
             {
                 if (d.SiteId == siteId)
                 {
-                    var opt = new DomainOption { Domain = d.Host, IsPrimaryDomain = false, IsSelected = true };
+                    DomainOption opt = new DomainOption { Domain = d.Host, IsPrimaryDomain = false, IsSelected = true };
                     domains.Add(opt);
                 }
             }
@@ -106,22 +97,11 @@ namespace Certify.Forms.Controls
                 //carry over settings from saved managed site
                 txtManagedSiteName.Text = managedSite.SiteName;
 
-                chkIncludeInAutoRenew.Checked = managedSite.IncludeInAutoRenew;
-                if (managedSite.RequestConfig != null)
-                {
-                    chkSkipConfigCheck.Checked = !managedSite.RequestConfig.PerformExtensionlessConfigChecks;
-                    chkAutoBindings.Checked = managedSite.RequestConfig.PerformAutomatedCertBinding;
-                    chkEnableNotifications.Checked = managedSite.RequestConfig.EnableFailureNotifications;
-                }
-
                 foreach (var d in domains)
                 {
-                    var opt = managedSite.DomainOptions.Find(o => o.Domain == d.Domain);
-                    if (opt != null)
-                    {
-                        d.IsPrimaryDomain = opt.IsPrimaryDomain;
-                        d.IsSelected = opt.IsSelected;
-                    }
+                    var opt = managedSite.DomainOptions.FirstOrDefault(o => o.Domain == d.Domain);
+                    d.IsPrimaryDomain = opt.IsPrimaryDomain;
+                    d.IsSelected = opt.IsSelected;
                 }
             }
 
@@ -133,13 +113,13 @@ namespace Certify.Forms.Controls
                     domains[0].IsPrimaryDomain = true;
                 }
 
-    domainListBindingSource.DataSource = domains;
+                this.domainListBindingSource.DataSource = domains;
 
-    lstPrimaryDomain.DataSource = domainListBindingSource;
-    lstPrimaryDomain.DisplayMember = "Domain";
+                this.lstPrimaryDomain.DataSource = this.domainListBindingSource;
+                this.lstPrimaryDomain.DisplayMember = "Domain";
 
-    //create filtered view of domains for the san list
-    PopulateSANList ();
+                //create filtered view of domains for the san list
+                this.PopulateSANList();
             }
             else
             {
@@ -163,7 +143,7 @@ namespace Certify.Forms.Controls
             btnRequestCertificate.Enabled = true;
         }
 
-        private async void btnRequestCertificate_Click( Object sender, EventArgs e)
+        private async void btnRequestCertificate_Click(object sender, EventArgs e)
         {
             if (lstSites.SelectedItem == null)
             {
@@ -174,7 +154,7 @@ namespace Certify.Forms.Controls
             //prevent further clicks on request button
             btnRequestCertificate.Enabled = false;
             ShowProgressBar();
-   Cursor = Cursors.WaitCursor;
+            this.Cursor = Cursors.WaitCursor;
 
             var managedSite = GetUpdatedManagedSiteSettings();
 
@@ -194,53 +174,40 @@ namespace Certify.Forms.Controls
                 MessageBox.Show("Certificate Request Completed");
             }
 
-   Cursor = Cursors.Default;
+            this.Cursor = Cursors.Default;
         }
 
-  private void lstSites_SelectedIndexChanged ( Object sender, EventArgs e ) => RefreshSelectedWebsite ();
+        private void lstSites_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            RefreshSelectedWebsite();
+        }
 
-  private void btnCancel_Click( Object sender, EventArgs e)
+        private void btnCancel_Click(object sender, EventArgs e)
         {
         }
 
         private void CloseParentForm()
         {
-            var tmp = FindForm ();
+            Form tmp = this.FindForm();
             tmp?.Close();
             tmp?.Dispose();
         }
 
-        private void CertRequestSettingsIIS_Load( Object sender, EventArgs e)
+        private void CertRequestSettingsIIS_Load(object sender, EventArgs e)
         {
-            if ( DesignMode ) {
-    return;
-   }
+            if (this.DesignMode) return;
 
-   btnRequestCertificate.Enabled = true;
-
+            btnRequestCertificate.Enabled = true;
+            PopulateWebsitesFromIIS();
             HideProgressBar();
 
-            if (IsNewManagedSiteMode)
+            if (lstSites.Items.Count == 0)
             {
-                btnCancel.Visible = true;
-                //allow user to pick a site from IIS
-                PopulateWebsitesFromIIS();
-
-                if (lstSites.Items.Count == 0)
-                {
-                    MessageBox.Show("You have no applicable IIS sites configured. Setup a website in IIS or use a Generic Request.");
-                }
-                else
-                {
-                }
-            }
-            else
-            {
-                btnCancel.Visible = false;
+                MessageBox.Show("You have no applicable IIS sites configured. Setup a website in IIS or use a Generic Request.");
             }
         }
 
-        private void groupBox1_Enter( Object sender, EventArgs e)
+        private void groupBox1_Enter(object sender, EventArgs e)
         {
         }
 
@@ -249,10 +216,10 @@ namespace Certify.Forms.Controls
             //update option selected/not selected, based on current selections first (to avoid losing the users settings)
             foreach (var i in chkListSAN.Items)
             {
-                var d = domains.Find(o => o.Domain == i.ToString());
+                var d = domains.FirstOrDefault(o => o.Domain == i.ToString());
                 if (d != null)
                 {
-     var isChecked = false;
+                    bool isChecked = false;
                     foreach (var c in chkListSAN.CheckedItems)
                     {
                         if (c.ToString() == d.Domain)
@@ -281,43 +248,33 @@ namespace Certify.Forms.Controls
             }
         }
 
-        private void lstPrimaryDomain_SelectedIndexChanged( Object sender, EventArgs e)
+        private void lstPrimaryDomain_SelectedIndexChanged(object sender, EventArgs e)
         {
             //refresh san list based on the primary selected domain
             RefreshDomainOptionSettingsFromUI();
 
-   //now clear san list and populate it again
-   PopulateSANList ();
+            //now clear san list and populate it again
+            this.PopulateSANList();
         }
 
         private void PopulateSANList()
         {
-   chkListSAN.Items.Clear();
+            this.chkListSAN.Items.Clear();
             foreach (var d in domains.Where(d => d.IsPrimaryDomain == false))
             {
-    chkListSAN.Items.Add(d.Domain, d.IsSelected);
+                this.chkListSAN.Items.Add(d.Domain, d.IsSelected);
             }
         }
 
-        private void btnSave_Click( Object sender, EventArgs e)
+        private void btnSave_Click(object sender, EventArgs e)
         {
             //save settings
             var s = GetUpdatedManagedSiteSettings();
             siteManager.UpdatedManagedSite(s);
 
-   //refresh parent app list of managed sites
-   NotifyParentAppManagedSiteChanges ();
+            MessageBox.Show("Managed Site settings saved.");
 
-            MessageBox.Show("Managed Site settings saved.", "Settings Saved");
-        }
-
-        private void NotifyParentAppManagedSiteChanges()
-        {
-            var parentForm = FindForm ();
-            if (parentForm is MainForm)
-            {
-                ((MainForm)parentForm).RefreshManagedSites();
-            }
+            //TODO: refresh parent app list of managed sites
         }
 
         /// <summary>
@@ -326,18 +283,19 @@ namespace Certify.Forms.Controls
         /// <returns></returns>
         private ManagedSite GetUpdatedManagedSiteSettings()
         {
-            var config = new CertRequestConfig();
+            CertRequestConfig config = new CertRequestConfig();
 
             RefreshDomainOptionSettingsFromUI();
 
-            var primaryDomain = domains.Find(d => d.IsPrimaryDomain == true && d.IsSelected == true) ?? domains.Find(d => d.IsSelected == true);
+            var primaryDomain = this.domains.FirstOrDefault(d => d.IsPrimaryDomain == true && d.IsSelected == true);
+            if (primaryDomain == null) primaryDomain = this.domains.FirstOrDefault(d => d.IsSelected == true);
 
-   config.PrimaryDomain = _idnMapping.GetAscii(primaryDomain.Domain); // ACME service requires international domain names in ascii mode
-            if ( domains.Count(d => d.IsSelected) > 1)
+            config.PrimaryDomain = _idnMapping.GetAscii(primaryDomain.Domain); // ACME service requires international domain names in ascii mode
+            if (this.domains.Count(d => d.IsSelected) > 1)
             {
                 //apply remaining selected domains as subject alternative names
                 config.SubjectAlternativeNames =
-                    domains.Where(dm => dm.Domain != primaryDomain.Domain && dm.IsSelected == true)
+                    this.domains.Where(dm => dm.Domain != primaryDomain.Domain && dm.IsSelected == true)
                     .Select(i => i.Domain)
                     .ToArray();
             }
@@ -349,7 +307,7 @@ namespace Certify.Forms.Controls
             config.EnableFailureNotifications = chkEnableNotifications.Checked;
 
             //determine if this site has an existing entry in Managed Sites, if so use that, otherwise start a new one
-            var managedSite = _selectedManagedSite;
+            ManagedSite managedSite = _selectedManagedSite;
 
             if (managedSite == null)
             {
@@ -370,7 +328,7 @@ namespace Certify.Forms.Controls
             managedSite.SiteName = txtManagedSiteName.Text;
 
             //store domain options settings and request config for this site so we can replay for automated renewal
-            managedSite.DomainOptions = domains;
+            managedSite.DomainOptions = this.domains;
             managedSite.RequestConfig = config;
 
             return managedSite;

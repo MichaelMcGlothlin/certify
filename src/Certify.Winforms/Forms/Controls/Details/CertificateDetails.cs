@@ -33,9 +33,9 @@ namespace Certify.Forms.Controls.Details
             lblAlias.Text = item.Alias;
             if (item.CertificateRequest != null)
             {
-                var certManager = new CertificateManager();
-    var certPath = parentApp.VaultManager.GetCertificateFilePath(item.Id);
-    var crtDerFilePath = certPath + "\\" + item.CrtDerFile;
+                CertificateManager certManager = new CertificateManager();
+                string certPath = parentApp.VaultManager.GetCertificateFilePath(item.Id);
+                string crtDerFilePath = certPath + "\\" + item.CrtDerFile;
                 lblFilePath.Text = crtDerFilePath;
 
                 if (File.Exists(crtDerFilePath))
@@ -45,7 +45,7 @@ namespace Certify.Forms.Controls.Details
                     lblIssuer.Text = cert.Issuer;
                     lblSubject.Text = cert.Subject;
 
-                    foreach (var extension in cert.Extensions)
+                    foreach (System.Security.Cryptography.X509Certificates.X509Extension extension in cert.Extensions)
                     {
                         if (extension.Oid.FriendlyName == "Subject Alternative Name")
                         {
@@ -65,8 +65,8 @@ namespace Certify.Forms.Controls.Details
                          Console.WriteLine("Raw data length: {0} {1}", asndata.RawData.Length, Environment.NewLine);
                          Console.WriteLine);
                      }*/
-                    var expiryDate = DateTime.Parse(cert.GetExpirationDateString());
-                    var timeLeft = expiryDate - DateTime.Now;
+                    DateTime expiryDate = DateTime.Parse(cert.GetExpirationDateString());
+                    TimeSpan timeLeft = expiryDate - DateTime.Now;
                     lblDaysRemaining.Text = timeLeft.Days.ToString();
                     if (timeLeft.Days < 7)
                     {
@@ -84,29 +84,29 @@ namespace Certify.Forms.Controls.Details
             }
         }
 
-        private void btnRenew_Click( Object sender, EventArgs e)
+        private void btnRenew_Click(object sender, EventArgs e)
         {
             //attempt to renew and then re-export the selected certificate
             if (item != null)
             {
-    Cursor = Cursors.WaitCursor;
-    //update and create certificate
-    //renew cert: parentApp.VaultManager.RenewCertificate(item.IdentifierRef)
-    /*if ()
-    {
-        Populate(item); // update display with renewed info
+                this.Cursor = Cursors.WaitCursor;
+                //update and create certificate
+                //renew cert: parentApp.VaultManager.RenewCertificate(item.IdentifierRef)
+                /*if ()
+                {
+                    Populate(item); // update display with renewed info
 
-        MessageBox.Show("Renewal requested. Check certificate info for expiry. Auto Apply to update IIS certificate");
-    }
-    else
-    {
-        MessageBox.Show("Could not process renewal.");
-    }*/
-    Cursor = Cursors.Default;
+                    MessageBox.Show("Renewal requested. Check certificate info for expiry. Auto Apply to update IIS certificate");
+                }
+                else
+                {
+                    MessageBox.Show("Could not process renewal.");
+                }*/
+                this.Cursor = Cursors.Default;
             }
         }
 
-        private void button1_Click( Object sender, EventArgs e)
+        private void button1_Click(object sender, EventArgs e)
         {
             if (item != null)
             {
@@ -115,17 +115,17 @@ namespace Certify.Forms.Controls.Details
             }
         }
 
-        private void btnApply_Click( Object sender, EventArgs e)
+        private void btnApply_Click(object sender, EventArgs e)
         {
             //attempt to match iis site with cert domain, auto create mappinngs
             var ident = parentApp.VaultManager.GetIdentifier(item.IdentifierRef.ToString());
             if (ident != null)
             {
-    var certFolderPath = parentApp.VaultManager.GetCertificateFilePath(item.Id, LocalDiskVault.ASSET);
-    var pfxFile = item.Id.ToString() + "-all.pfx";
-    var pfxPath = Path.Combine(certFolderPath, pfxFile);
+                string certFolderPath = parentApp.VaultManager.GetCertificateFilePath(item.Id, LocalDiskVault.ASSET);
+                string pfxFile = item.Id.ToString() + "-all.pfx";
+                string pfxPath = Path.Combine(certFolderPath, pfxFile);
 
-                var iisManager = new IISManager();
+                IISManager iisManager = new IISManager();
                 if (iisManager.InstallCertForDomain(ident.Dns, pfxPath, cleanupCertStore: true, skipBindings: false))
                 {
                     //all done

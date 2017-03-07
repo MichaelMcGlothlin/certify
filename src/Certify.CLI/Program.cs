@@ -13,7 +13,7 @@ namespace Certify.CLI
 {
     internal class Program
     {
-        private static Int32 Main ( String[] args)
+        private static int Main(string[] args)
         {
             if (args.Length == 0)
             {
@@ -77,14 +77,14 @@ namespace Certify.CLI
             {
                 foreach (var s in siteList)
                 {
-                    /* Console.ForegroundColor = ConsoleColor.White;
-                     System.Console.WriteLine(String.Format("{0} ({1}): Create single certificate for {2} bindings: \n", s.SiteName, s.SiteType.ToString(), s.SiteBindings.Count));
+                    Console.ForegroundColor = ConsoleColor.White;
+                    System.Console.WriteLine(String.Format("{0} ({1}): Create single certificate for {2} bindings: \n", s.SiteName, s.SiteType.ToString(), s.SiteBindings.Count));
 
-                     Console.ResetColor();
-                     foreach (var b in s.SiteBindings)
-                     {
-                         System.Console.WriteLine("\t" + b.Hostname + " \n");
-                     }*/
+                    Console.ResetColor();
+                    foreach (var b in s.SiteBindings)
+                    {
+                        System.Console.WriteLine("\t" + b.Hostname + " \n");
+                    }
                 }
             }
 
@@ -99,7 +99,7 @@ namespace Certify.CLI
             return results;
         }
 
-        private Boolean PerformCertRequestAndIISBinding ( String certDomain, String[] alternativeNames)
+        private bool PerformCertRequestAndIISBinding(string certDomain, string[] alternativeNames)
         {
             // ACME service requires international domain names in ascii mode
             certDomain = _idnMapping.GetAscii(certDomain);
@@ -122,7 +122,7 @@ namespace Certify.CLI
             // Get-ACMECertificate -Ref = ac22dbfe - b75f - 4cac-9247-b40c1d9bf9eb -ExportPkcs12 C:\ProgramData\ACMESharp\sysVault\99-ASSET\ac22dbfe-b75f-4cac-9247-b40c1d9bf9eb-all.pfx -Overwrite
 
             //get info on existing IIS site we want to create/update SSL binding for
-            var iisManager = new IISManager();
+            IISManager iisManager = new IISManager();
             var iisSite = iisManager.GetSiteBindingByDomain(certDomain);
             var certConfig = new CertRequestConfig()
             {
@@ -131,12 +131,11 @@ namespace Certify.CLI
                 WebsiteRootPath = Environment.ExpandEnvironmentVariables(iisSite.PhysicalPath)
             };
 
-   var certifyManager = new VaultManager ( Properties.Settings.Default.VaultPath, LocalDiskVault.VAULT ) {
-    UsePowershell = false
-   };
+            var certifyManager = new VaultManager(Properties.Settings.Default.VaultPath, LocalDiskVault.VAULT);
+            certifyManager.UsePowershell = false;
 
-   //init vault if not already created
-   certifyManager.InitVault(staging: true);
+            //init vault if not already created
+            certifyManager.InitVault(staging: true);
 
             //domain alias is used as an ID in both the vault and the LE server, it's specific to one authorization attempt and cannot be reused for renewal
             var domainIdentifierAlias = certifyManager.ComputeIdentifierAlias(certDomain);
@@ -157,15 +156,15 @@ namespace Certify.CLI
                 certifyManager.SubmitChallenge(domainIdentifierAlias, "http-01");
             }
 
-   //now check if LE has validated our challenge answer
-   var validated = certifyManager.CompleteIdentifierValidationProcess(domainIdentifierAlias);
+            //now check if LE has validated our challenge answer
+            bool validated = certifyManager.CompleteIdentifierValidationProcess(domainIdentifierAlias);
 
             if (validated)
             {
                 var certRequestResult = certifyManager.PerformCertificateRequestProcess(domainIdentifierAlias, alternativeIdentifierRefs: null);
                 if (certRequestResult.IsSuccess)
                 {
-     var pfxPath = certRequestResult.Result.ToString();
+                    string pfxPath = certRequestResult.Result.ToString();
                     //Install certificate into certificate store and bind to IIS site
                     //TODO, match by site id?
                     if (iisManager.InstallCertForDomain(certDomain, pfxPath, cleanupCertStore: true, skipBindings: false))
